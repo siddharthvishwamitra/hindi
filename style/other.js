@@ -1,43 +1,65 @@
-// Function to load text from a file and set font size
 function loadFile(selectedFile) {
-  var textContainer = document.getElementById('textContainer');
+  const textContainer = document.getElementById('textContainer');
 
-  // Check if the selectedFile doesn't end with ".txt" and add it if needed
-  if (selectedFile && !selectedFile.endsWith(".txt")) {
-    selectedFile += ".txt";
-  }
-
-  if (selectedFile) {
-    // Use AJAX to load the text from the selected file
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', selectedFile, true);
-    xhr.onreadystatechange = function() {
-      if (xhr.readyState === 4 && xhr.status === 200) {
-        // Set the font size and display the loaded text
-        textContainer.style.fontSize = '16px'; // You can change the font size here
-        textContainer.innerHTML = '<pre class="wrapped-text">' + xhr.responseText + '</pre>';
-      }
-    };
-    xhr.send();
-  } else {
-    // If no file is selected, clear the content
-    textContainer.style.fontSize = '16px'; // Reset font size
+  if (!selectedFile) {
+    textContainer.style.fontSize = '16px';
     textContainer.textContent = '';
+    return;
   }
+
+  let fetchPath = selectedFile;
+  if (!fetchPath.endsWith(".txt")) {
+    fetchPath += ".txt";
+  }
+
+  textContainer.style.fontSize = '16px';
+  textContainer.textContent = 'लोड हो रहा है...';
+
+  fetch(fetchPath)
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not ok');
+      return response.text();
+    })
+    .then(data => {
+      textContainer.innerHTML = '';
+      const pre = document.createElement('pre');
+      pre.className = 'wrapped-text';
+      pre.textContent = data;
+      textContainer.appendChild(pre);
+    })
+    .catch(error => {
+      textContainer.textContent = 'सामग्री लोड करने में विफल।';
+    });
 }
 
-// Check if the page was loaded with a file parameter in the URL
-var queryString = window.location.search;
-var urlParams = new URLSearchParams(queryString);
-var fileNameParam = urlParams.get('file');
+const urlParams = new URLSearchParams(window.location.search);
+const fileNameParam = urlParams.get('fetch');
+const chooseDropdown = document.getElementById('choose');
 
-// If a file parameter was provided, load the file
-if (fileNameParam) {
+if (fileNameParam && chooseDropdown) {
   loadFile(fileNameParam);
+
+  let matchedValue = fileNameParam;
+  const options = Array.from(chooseDropdown.options);
+  
+  const found = options.some(opt => {
+    if (opt.value === fileNameParam || opt.value === fileNameParam + '.txt' || opt.value.replace('.txt', '') === fileNameParam.replace('.txt', '')) {
+      chooseDropdown.value = opt.value;
+      return true;
+    }
+    return false;
+  });
 }
 
-// Event listener for the dropdown menu
-document.getElementById('choose').addEventListener('change', function() {
-  var selectedFile = this.value;
-  loadFile(selectedFile);
-});
+if (chooseDropdown) {
+  chooseDropdown.addEventListener('change', function() {
+    const selectedFile = this.value;
+    loadFile(selectedFile);
+
+    if (selectedFile) {
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('fetch', selectedFile.replace('.txt', ''));
+      window.history.pushState({}, '', newUrl);
+    }
+  });
+}
