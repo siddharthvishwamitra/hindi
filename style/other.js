@@ -59,7 +59,7 @@ if (chooseDropdown) {
     if (selectedFile) {
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('fetch', selectedFile.replace('.txt', ''));
-      window.history.pushState({}, '', newUrl);
+      window.history.replaceState({}, '', newUrl);
     }
   });
 }
